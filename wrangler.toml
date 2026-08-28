@@ -1,3 +1,7 @@
 name = "P_radar_bot"
 main = "src/index.js"
 compatibility_date = "2026-08-28"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "41d93b0333714c978e2267b6bf50a21f"
