@@ -1,4 +1,4 @@
-name = "P_radar_bot"
+name = "p-radar-bot"
 main = "src/index.js"
 compatibility_date = "2026-08-28"
 
