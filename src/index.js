@@ -36,12 +36,18 @@ async function handleMessage(message, env) {
   const chatId = message.chat.id;
   const userId = message.from.id;
 
-  if (env.ADMIN_ID && String(userId) === String(env.ADMIN_ID) && message.document) {
-    await env.KV.put("reward_file_id", message.document.file_id);
+  if (message.document) {
     await tg("sendMessage", env, {
       chat_id: chatId,
-      text: "فایل جایزه ذخیره شد ✅",
+      text: `دیباگ:\nآیدی تو: ${userId}\nADMIN_ID ثبت‌شده: ${env.ADMIN_ID}\nمطابقت: ${String(userId) === String(env.ADMIN_ID)}`,
     });
+    if (env.ADMIN_ID && String(userId) === String(env.ADMIN_ID)) {
+      await env.KV.put("reward_file_id", message.document.file_id);
+      await tg("sendMessage", env, {
+        chat_id: chatId,
+        text: "فایل جایزه ذخیره شد ✅",
+      });
+    }
     return;
   }
 
