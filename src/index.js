@@ -78,6 +78,11 @@ async function handleMessage(message, env) {
 }
 
 async function handleChatMember(chatMember, env) {
+  await tg("sendMessage", env, {
+    chat_id: env.ADMIN_ID,
+    text: `دیباگ chat_member:\nchat.id: ${chatMember.chat.id}\nCHANNEL_ID: ${CHANNEL_ID}\nold: ${chatMember.old_chat_member.status}\nnew: ${chatMember.new_chat_member.status}\ninvite_link: ${chatMember.invite_link ? chatMember.invite_link.invite_link : "ندارد"}`,
+  });
+
   if (chatMember.chat.id !== CHANNEL_ID) return;
 
   const oldStatus = chatMember.old_chat_member.status;
@@ -111,11 +116,14 @@ async function handleChatMember(chatMember, env) {
       } else {
         await tg("sendMessage", env, {
           chat_id: ownerId,
-          text: "تبریک، ۳ نفر رو دعوت کردی! فایل جایزه بهزودی برات ارسال می‌شه.",
+          text: "تبریک، ۳ نفر رو دعوت کردی! فایل جایزه به‌زودی برات ارسال می‌شه.",
         });
       }
     }
   } else {
     await tg("sendMessage", env, {
       chat_id: ownerId,
-      text: `ی
+      text: `یه نفر با لینک تو عضو شد ✅\nتعداد فعلی: ${newCount} از ${REQUIRED_INVITES}`,
+    });
+  }
+}
