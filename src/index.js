@@ -36,18 +36,12 @@ async function handleMessage(message, env) {
   const chatId = message.chat.id;
   const userId = message.from.id;
 
-  if (message.document) {
+  if (env.ADMIN_ID && String(userId) === String(env.ADMIN_ID) && message.document) {
+    await env.KV.put("reward_file_id", message.document.file_id);
     await tg("sendMessage", env, {
       chat_id: chatId,
-      text: `دیباگ:\nآیدی تو: ${userId}\nADMIN_ID ثبت‌شده: ${env.ADMIN_ID}\nمطابقت: ${String(userId) === String(env.ADMIN_ID)}`,
+      text: "فایل جایزه ذخیره شد ✅",
     });
-    if (env.ADMIN_ID && String(userId) === String(env.ADMIN_ID)) {
-      await env.KV.put("reward_file_id", message.document.file_id);
-      await tg("sendMessage", env, {
-        chat_id: chatId,
-        text: "فایل جایزه ذخیره شد ✅",
-      });
-    }
     return;
   }
 
@@ -117,14 +111,11 @@ async function handleChatMember(chatMember, env) {
       } else {
         await tg("sendMessage", env, {
           chat_id: ownerId,
-          text: "تبریک، ۳ نفر رو دعوت کردی! فایل جایزه به‌زودی برات ارسال می‌شه.",
+          text: "تبریک، ۳ نفر رو دعوت کردی! فایل جایزه بهزودی برات ارسال می‌شه.",
         });
       }
     }
   } else {
     await tg("sendMessage", env, {
       chat_id: ownerId,
-      text: `یه نفر با لینک تو عضو شد ✅\nتعداد فعلی: ${newCount} از ${REQUIRED_INVITES}`,
-    });
-  }
-}
+      text: `ی
