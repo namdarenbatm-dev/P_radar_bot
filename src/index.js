@@ -1,5 +1,7 @@
 const CHANNEL_ID = -1004230290296;
+const CHANNEL_USERNAME = "paymentradar";
 const REQUIRED_INVITES = 3;
+const BOT_USERNAME = "P_radar_bot";
 
 export default {
   async fetch(request, env, ctx) {
@@ -35,6 +37,7 @@ async function tg(method, env, body) {
 async function handleMessage(message, env) {
   const chatId = message.chat.id;
   const userId = message.from.id;
+  const text = message.text || "";
 
   if (env.ADMIN_ID && String(userId) === String(env.ADMIN_ID) && message.document) {
     await env.KV.put("reward_file_id", message.document.file_id);
@@ -45,44 +48,29 @@ async function handleMessage(message, env) {
     return;
   }
 
-  if (message.text === "/start") {
-    let link = await env.KV.get(`link:${userId}`);
+  if (text.startsWith("/start")) {
+    const parts = text.split(" ");
+    const payload = parts.length > 1 ? parts[1] : null;
 
-    if (!link) {
-      const result = await tg("createChatInviteLink", env, {
-        chat_id: CHANNEL_ID,
-        name: `ref_${userId}`,
-      });
-
-      if (!result.ok) {
-        await tg("sendMessage", env, {
-          chat_id: chatId,
-          text: "خطا در ساخت لینک دعوت. لطفاً بعداً دوباره امتحان کن.",
-        });
-        return;
+    if (payload && payload !== String(userId)) {
+      const alreadyReferred = await env.KV.get(`referred:${userId}`);
+      if (!alreadyReferred) {
+        await env.KV.put(`referred:${userId}`, "1");
+        await env.KV.put(`pending:${userId}`, payload);
       }
-
-      link = result.result.invite_link;
-      await env.KV.put(`link:${userId}`, link);
-      await env.KV.put(`owner:${link}`, String(userId));
-      await env.KV.put(`count:${userId}`, "0");
     }
 
     const count = (await env.KV.get(`count:${userId}`)) || "0";
+    const myLink = `https://t.me/${BOT_USERNAME}?start=${userId}`;
 
     await tg("sendMessage", env, {
       chat_id: chatId,
-      text: `سلام 👋\nاین لینک اختصاصی توئه، به دوستات بفرست:\n${link}\n\nهر وقت ۳ نفر با این لینک عضو چنل بشن، فایل جایزه خودکار برات ارسال می‌شه.\n\nتعداد دعوت‌های موفق فعلی: ${count} از ${REQUIRED_INVITES}`,
+      text: `سلام 👋\nاین لینک اختصاصی توئه، به دوستات بفرست:\n${myLink}\n\nهر وقت ۳ نفر با این لینک وارد ربات بشن و عضو چنل @${CHANNEL_USERNAME} بشن، فایل جایزه خودکار برات ارسال می‌شه.\n\nتعداد دعوت‌های موفق فعلی: ${count} از ${REQUIRED_INVITES}\n\n👈 حالا برو عضو چنل بشو: https://t.me/${CHANNEL_USERNAME}`,
     });
   }
 }
 
 async function handleChatMember(chatMember, env) {
-  await tg("sendMessage", env, {
-    chat_id: env.ADMIN_ID,
-    text: `دیباگ chat_member:\nchat.id: ${chatMember.chat.id}\nCHANNEL_ID: ${CHANNEL_ID}\nold: ${chatMember.old_chat_member.status}\nnew: ${chatMember.new_chat_member.status}\ninvite_link: ${chatMember.invite_link ? chatMember.invite_link.invite_link : "ندارد"}`,
-  });
-
   if (chatMember.chat.id !== CHANNEL_ID) return;
 
   const oldStatus = chatMember.old_chat_member.status;
@@ -91,12 +79,12 @@ async function handleChatMember(chatMember, env) {
   const joined = (oldStatus === "left" || oldStatus === "kicked") && newStatus === "member";
   if (!joined) return;
 
-  const inviteLink = chatMember.invite_link;
-  if (!inviteLink) return;
+  const newUserId = chatMember.new_chat_member.user.id;
 
-  const link = inviteLink.invite_link;
-  const ownerId = await env.KV.get(`owner:${link}`);
+  const ownerId = await env.KV.get(`pending:${newUserId}`);
   if (!ownerId) return;
+
+  await env.KV.delete(`pending:${newUserId}`);
 
   const countStr = (await env.KV.get(`count:${ownerId}`)) || "0";
   const newCount = parseInt(countStr, 10) + 1;
@@ -123,7 +111,7 @@ async function handleChatMember(chatMember, env) {
   } else {
     await tg("sendMessage", env, {
       chat_id: ownerId,
-      text: `یه نفر با لینک تو عضو شد ✅\nتعداد فعلی: ${newCount} از ${REQUIRED_INVITES}`,
+      text: `یه نفر با لینک تو عضو چنل شد ✅\nتعداد فعلی: ${newCount} از ${REQUIRED_INVITES}`,
     });
   }
 }
