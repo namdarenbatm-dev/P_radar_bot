@@ -34,6 +34,14 @@ async function tg(method, env, body) {
   return res.json();
 }
 
+function progressBar(count) {
+  let bar = "";
+  for (let i = 0; i < REQUIRED_INVITES; i++) {
+    bar += i < count ? "✅ " : "⬜️ ";
+  }
+  return bar.trim();
+}
+
 async function handleMessage(message, env) {
   const chatId = message.chat.id;
   const userId = message.from.id;
@@ -60,12 +68,23 @@ async function handleMessage(message, env) {
       }
     }
 
-    const count = (await env.KV.get(`count:${userId}`)) || "0";
+    const count = parseInt((await env.KV.get(`count:${userId}`)) || "0", 10);
     const myLink = `https://t.me/${BOT_USERNAME}?start=${userId}`;
 
     await tg("sendMessage", env, {
       chat_id: chatId,
-      text: `سلام 👋\nاین لینک اختصاصی توئه، به دوستات بفرست:\n${myLink}\n\nهر وقت ۳ نفر با این لینک وارد ربات بشن و عضو چنل @${CHANNEL_USERNAME} بشن، فایل جایزه خودکار برات ارسال می‌شه.\n\nتعداد دعوت‌های موفق فعلی: ${count} از ${REQUIRED_INVITES}\n\n👈 حالا برو عضو چنل بشو: https://t.me/${CHANNEL_USERNAME}`,
+      text: `سلام 👋
+
+این لینک اختصاصی توئه، به دوستات بفرست:
+${myLink}
+
+هر وقت ۳ نفر با این لینک وارد ربات بشن و عضو چنل @${CHANNEL_USERNAME} بشن، فایل جایزه خودکار برات ارسال می‌شه.
+
+📊 پیشرفت تو:
+${progressBar(count)}
+${count} از ${REQUIRED_INVITES} دعوت موفق
+
+👈 حالا برو عضو چنل بشو: https://t.me/${CHANNEL_USERNAME}`,
     });
   }
 }
@@ -98,20 +117,29 @@ async function handleChatMember(chatMember, env) {
         await tg("sendDocument", env, {
           chat_id: ownerId,
           document: fileId,
-          caption: "تبریک! 🎉 این فایل جایزه توئه.",
+          caption: `🎉 تبریک!
+
+${progressBar(newCount)}
+${newCount} از ${REQUIRED_INVITES} — کامل شد!
+
+این فایل جایزه توئه 🎁`,
         });
         await env.KV.put(`rewarded:${ownerId}`, "1");
       } else {
         await tg("sendMessage", env, {
           chat_id: ownerId,
-          text: "تبریک، ۳ نفر رو دعوت کردی! فایل جایزه به‌زودی برات ارسال می‌شه.",
+          text: `🎉 تبریک، ۳ نفر رو دعوت کردی!\n${progressBar(newCount)}\nفایل جایزه به‌زودی برات ارسال می‌شه.`,
         });
       }
     }
   } else {
     await tg("sendMessage", env, {
       chat_id: ownerId,
-      text: `یه نفر با لینک تو عضو چنل شد ✅\nتعداد فعلی: ${newCount} از ${REQUIRED_INVITES}`,
+      text: `🎊 یه نفر با لینک تو عضو چنل شد!
+
+📊 پیشرفت تو:
+${progressBar(newCount)}
+${newCount} از ${REQUIRED_INVITES} دعوت موفق`,
     });
   }
 }
